@@ -78,3 +78,21 @@ def search(db: sqlite3.Connection, vector: list[float], k: int) -> list[dict]:
             (sqlite_vec.serialize_float32(vector), k),
         )
         return cursor.fetchall()
+
+
+def delete_message(db, id):
+    with db:
+        db.execute(
+            """
+            DELETE FROM message
+            WHERE id = ?
+            """,
+            (id,),
+        )
+        db.execute(
+            """
+            DELETE FROM vec_message
+            WHERE rowid = ?
+            """,
+            (id,),
+        )
