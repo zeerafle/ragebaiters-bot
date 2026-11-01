@@ -65,7 +65,7 @@ def add_messages(
 def search(db: sqlite3.Connection, vector: list[float], k: int) -> list[dict]:
     cursor = db.execute(
         """
-        SELECT id, content, url
+        SELECT id, author, timestamp, content, url
         FROM vec_message
         JOIN message
         ON message.id = vec_message.rowid
