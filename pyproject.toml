@@ -1,0 +1,22 @@
+[project]
+name = "cern-ragebaiters-dc"
+version = "0.1.0"
+description = "Discord bot: internship feed + server-aware chatbot"
+readme = "README.md"
+authors = [
+    { name = "Sam Fareez", email = "vsefareez@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "discord-py>=2.7.1",
+    "pydantic-ai-slim[openai,web-fetch]>=2.64.0",
+    "sqlite-vec>=0.1.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
