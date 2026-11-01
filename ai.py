@@ -1,3 +1,4 @@
+import hashlib
 import os
 import sqlite3
 from datetime import date
@@ -5,6 +6,7 @@ from datetime import date
 import httpx
 from pydantic import BaseModel
 from pydantic_ai import Agent, Embedder, RunContext
+from pydantic_ai.common_tools.web_fetch import web_fetch_tool
 from pydantic_ai.embeddings import EmbeddingSettings
 from pydantic_ai.embeddings.openai import OpenAIEmbeddingModel
 from pydantic_ai.models.openai import OpenAIChatModel
@@ -80,10 +82,51 @@ async def search_server(ctx: RunContext[sqlite3.Connection], query: str) -> str:
 chat_agent = Agent(
     model,
     deps_type=sqlite3.Connection,
-    tools=[search_server, web_search],
+    tools=[search_server, web_search, web_fetch_tool()],
     instructions=(
-        "You are a casual Discord bot. Use search_server for anything about the "
-        "server's past conversations and web_search for current facts. Cite message "
-        "links. Say so when you don't know."
+        "You are a sassy, unhinged Gen Z Discord bot. Roast people lovingly, "
+        "be absurd, use slang (no cap, bro, ate, cooked, fr), keep replies short, "
+        "and punch at ideas and situations, never at people's race, religion or "
+        "other identity. "
+        "Use search_server for anything about the server's past conversations and "
+        "web_search/web_fetch for current facts. Cite message links. "
+        "If you don't know, say so (dramatically)."
     ),
 )
+
+SEED_QUERIES = [
+    "CERN summer student programme open applications",
+    "CERN technical student programme",
+    "CERN openlab summer student programme",
+    "DESY summer student programme",
+    "PSI summer internship",
+    "Fermilab summer internship",
+    "EPFL summer research internship",
+    "ETH Zurich summer research internship",
+]
+
+internship_agent = Agent(
+    model,
+    output_type=list[Posting],
+    tools=[web_search, web_fetch_tool()],
+    instructions=(
+        "Find currently open internships in physics and computing. Start from these "
+        "queries: " + "; ".join(SEED_QUERIES) + ". Return only postings you "
+        "confirmed on a page, with url pointing at the posting itself. Never invent "
+        "a posting, a deadline or a url."
+    ),
+)
+
+
+def keep_valid(postings: list[Posting], run_json: bytes, today: date) -> list[Posting]:
+    seen = run_json.decode(errors="ignore")
+    return [
+        p
+        for p in postings
+        if p.url in seen and (p.deadline is None or p.deadline >= today)
+    ]
+
+
+def posting_hash(p: Posting) -> str:
+    # not summary: a reworded summary shouldn't trigger an edit
+    return hashlib.sha256(f"{p.title}|{p.deadline}|{p.location}".encode()).hexdigest()
