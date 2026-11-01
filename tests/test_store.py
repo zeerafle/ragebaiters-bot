@@ -11,13 +11,22 @@ def db(tmp_path):
 
 
 def msg(id, content, channel_id=1):
-    return {"id": id, "channel_id": channel_id, "author": "sam", "ts": "2026-07-01T10:00:00",
-            "url": f"https://discord.com/channels/0/{channel_id}/{id}", "content": content}
+    return {
+        "id": id,
+        "channel_id": channel_id,
+        "author": "sam",
+        "timestamp": "2026-07-01T10:00:00",
+        "url": f"https://discord.com/channels/0/{channel_id}/{id}",
+        "content": content,
+    }
 
 
 def test_search_returns_nearest_first(db):
-    store.add_messages(db, [msg(1, "clip"), msg(2, "cern"), msg(3, "food")],
-                       [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    store.add_messages(
+        db,
+        [msg(1, "clip"), msg(2, "cern"), msg(3, "food")],
+        [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    )
     hits = store.search(db, [0.1, 0.9, 0], k=2)
     assert [h["id"] for h in hits] == [2, 1]
     assert hits[0]["content"] == "cern" and hits[0]["url"].endswith("/2")
@@ -38,8 +47,9 @@ def test_delete_removes_from_search(db):
 
 def test_last_id_per_channel(db):
     assert store.last_id(db, 1) is None
-    store.add_messages(db, [msg(5, "a"), msg(9, "b"), msg(7, "c", channel_id=2)],
-                       [[1, 0, 0]] * 3)
+    store.add_messages(
+        db, [msg(5, "a"), msg(9, "b"), msg(7, "c", channel_id=2)], [[1, 0, 0]] * 3
+    )
     assert store.last_id(db, 1) == 9
     assert store.last_id(db, 2) == 7
 
@@ -68,4 +78,6 @@ def test_expired_postings(db):
     store.save_posting(db, "https://x/none", 3, "h", None)
     store.save_posting(db, "https://x/done", 4, "h", date(2026, 9, 1))
     store.mark_archived(db, "https://x/done")
-    assert [p["url"] for p in store.expired_postings(db, date(2026, 11, 1))] == ["https://x/past"]
+    assert [p["url"] for p in store.expired_postings(db, date(2026, 11, 1))] == [
+        "https://x/past"
+    ]
