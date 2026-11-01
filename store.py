@@ -22,9 +22,9 @@ def open_db(path: str, dim: int) -> sqlite3.Connection:
         CREATE VIRTUAL TABLE IF NOT EXISTS vec_message USING vec0(
             embedding float[{dim}]
         );
-        CREATE TABLE IF NOT EXISTS postings (
+        CREATE TABLE IF NOT EXISTS posting (
             url TEXT PRIMARY KEY,
-            thread_id TEXT,
+            thread_id INTEGER,
             hash TEXT,
             deadline TEXT,
             archive INTEGER DEFAULT 0
@@ -106,3 +106,32 @@ def last_id(db, channel_id):
         (channel_id,),
     ).fetchone()
     return row[0]
+
+
+def save_posting(db, url, thread_id, hash, deadline):
+    with db:
+        db.execute(
+            # use ON CONFLICT ... to avoid resetting archive to 0 on an
+            # already-archived posting
+            """
+            INSERT INTO posting(url, thread_id, hash, deadline)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(url) DO UPDATE SET
+                thread_id = excluded.thread_id,
+                hash = excluded.hash,
+                deadline = excluded.deadline
+            """,
+            (url, thread_id, hash, deadline.isoformat() if deadline else None),
+        )
+
+
+def get_posting(db, url) -> list[dict]:
+    row = db.execute(
+        """
+        SELECT *
+        FROM posting
+        WHERE url = ?
+        """,
+        (url,),
+    ).fetchone()
+    return row
