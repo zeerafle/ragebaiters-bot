@@ -135,3 +135,26 @@ def get_posting(db, url) -> list[dict]:
         (url,),
     ).fetchone()
     return row
+
+
+def mark_archived(db, url):
+    with db:
+        db.execute(
+            """
+            UPDATE posting
+            SET archive = 1
+            WHERE url = ?
+            """,
+            (url,),
+        )
+
+
+def expired_postings(db, today):
+    return db.execute(
+        """
+        SELECT url
+        FROM posting
+        WHERE archive = 0 AND deadline < ?
+        """,
+        (today.isoformat(),),
+    ).fetchall()
