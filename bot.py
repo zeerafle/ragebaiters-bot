@@ -150,7 +150,10 @@ async def internships():
             row = store.get_posting(db, p.url)
             if row is None:
                 created = await forum.create_thread(
-                    name=p.title[:100], content=render(p)
+                    name=p.title[:100],
+                    content=render(p),
+                    # shortcut: always the forum's first tag, pick by posting type if needed
+                    applied_tags=forum.available_tags[:1],
                 )
                 store.save_posting(db, p.url, created.thread.id, h, p.deadline)
             elif row["hash"] != h:
