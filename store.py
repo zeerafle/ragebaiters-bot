@@ -38,7 +38,6 @@ def add_messages(
 ):
     with db:
         for m, e in zip(messages, embeddings, strict=True):
-            print(m)
             db.execute(
                 """
                 INSERT OR REPLACE INTO message
@@ -64,20 +63,19 @@ def add_messages(
 
 
 def search(db: sqlite3.Connection, vector: list[float], k: int) -> list[dict]:
-    with db:
-        cursor = db.execute(
-            """
-            SELECT id, content, url
-            FROM vec_message
-            JOIN message
-            ON message.id = vec_message.rowid
-            WHERE embedding MATCH ? AND k = ?
-            ORDER BY distance
-            LIMIT 20
-            """,
-            (sqlite_vec.serialize_float32(vector), k),
-        )
-        return cursor.fetchall()
+    cursor = db.execute(
+        """
+        SELECT id, content, url
+        FROM vec_message
+        JOIN message
+        ON message.id = vec_message.rowid
+        WHERE embedding MATCH ? AND k = ?
+        ORDER BY distance
+        LIMIT 20
+        """,
+        (sqlite_vec.serialize_float32(vector), k),
+    )
+    return cursor.fetchall()
 
 
 def delete_message(db, id):
@@ -96,3 +94,15 @@ def delete_message(db, id):
             """,
             (id,),
         )
+
+
+def last_id(db, channel_id):
+    row = db.execute(
+        """
+        SELECT MAX(id)
+        FROM message
+        WHERE channel_id = ?
+        """,
+        (channel_id,),
+    ).fetchone()
+    return row[0]
